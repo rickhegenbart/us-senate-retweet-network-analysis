@@ -1,0 +1,175 @@
+---
+title: "R Notebook"
+output:
+  html_notebook:
+    fig_caption: true
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(DT)
+library(igraph)
+library(rtweet)
+library(visNetwork)
+library(graphTweets)  
+library(dplyr)
+```
+
+
+
+```{r}
+token <- create_token(
+  app = "US-Senator",
+  consumer_key = "D38ITwMk7n9uMGjlPCz3XWTHV",
+                  consumer_secret = "EK2O62bab0W4fJ9Gj97uiEfE4Eeygj0iA6E50vsg40U1BZp6JT",
+                  access_token = "1226982887783690241-3qqlXFAtNZq2KXBu0nIp1XXwKcclvo" ,
+                  access_secret = "8eLnNPnMfYU0pacVldSv0xjUtiyIQVqatuw1f0GJQ2jSh")
+
+get_token()        
+```
+
+
+
+```{r}
+USsenate_tweets <- get_timeline("US senators", n = 200)
+```
+
+This collects a list of US Senators and thier last 200 tweets.
+
+
+```{r}
+USsenate_retweet_network <- USSenate_tweets %>% 
+  gt_edges(screen_name, retweet_screen_name, text) %>% 
+  gt_graph()
+
+
+USsenate_retweet_nodes <- as_data_frame(USsenate_retweet_network, what = "vertices")
+
+
+USsenate_retweet_nodes <- USsenate_retweet_nodes %>% 
+  mutate(id = name) %>% 
+  mutate(label = name) %>% 
+  mutate(title = name) %>% 
+  mutate(degree = degree(USsenate_retweet_network)) %>% 
+  mutate(value = degree)
+
+
+USsenate_retweet_edges <- as_data_frame(USsenate_retweet_network, what = "edges")
+
+
+USsenate_retweet_edges <- USsenate_retweet_edges %>% 
+  mutate(title = text)
+
+
+visNetwork(USsenate_retweet_nodes, USsenate_retweet_edges, main = "US Senate officials retweet network") %>% 
+  visIgraphLayout(layout = "layout_nicely") %>% 
+  visEdges(arrows = "to")
+```
+
+Retweet network of US Senate
+
+
+```{r}
+USsenate_retweet_network %>% 
+  vcount()
+```
+
+
+```{r}
+USsenate_retweet_network %>% 
+  ecount()
+```
+
+
+```{r}
+USsenate_retweet_network %>%
+  edge_density()
+```
+
+
+```{r}
+USsenate_retweet_nodes %>%
+  select(name, degree) %>%
+  datatable()
+```
+
+
+```{R}
+USsenate <- lists_members(slug = "us-senate", owner_user = "TwitterGov")
+
+USsenate_tweets <- get_timeline(USsenate$screen_name, n = 180)
+```
+
+
+```{r warning=FALSE}
+USsenate_retweets_network <- USSenate_tweets %>% 
+  filter(retweet_screen_name %in% USSenate_tweets$screen_name) %>% 
+  gt_edges(screen_name, retweet_screen_name, text) %>%
+  gt_graph()
+
+USsenate_retweets_nodes <- as_data_frame(USsenate_retweets_network, what = "vertices")
+
+
+USsenate_retweets_nodes <- USsenate_retweets_nodes %>% 
+  mutate(id = name) %>% 
+  mutate(label = name) %>% 
+  mutate(title = name) %>% 
+  mutate(degree = degree(USsenate_retweets_network)) %>% 
+  mutate(value = degree)
+
+
+USsenate_retweets_edges <- as_data_frame(USsenate_retweets_network, what = "edges")
+
+
+USsenate_retweets_edges <- USsenate_retweets_edges %>% 
+  mutate(title = text)
+
+
+visNetwork(USsenate_retweets_nodes, USsenate_retweets_edges, main = "US Senate officials retweet network") %>% 
+  visIgraphLayout(layout = "layout_nicely") %>% 
+  visEdges(arrows = "to")
+```
+
+This is a network diagram of US Senate officials retweets with communities. This includes the option to select by group and each group is represented by diffferent colors.
+
+
+```{r}
+USsenate_retweets_nodes <- USsenate_retweets_nodes %>% 
+  mutate(group = membership(infomap.community(USsenate_retweets_network)))
+```
+
+
+```{r warning=FALSE}
+visNetwork(USsenate_retweets_nodes, USsenate_retweets_edges, main = "US Senate officials retweet network") %>% 
+  visIgraphLayout(layout = "layout_nicely") %>% 
+  visEdges(arrows = "to") %>%   
+  visOptions(highlightNearest = T, nodesIdSelection = T, selectedBy = "group")
+```
+
+This is a network diagram of US Senate officials retweets with communities. This includes the option to select by group and each group is represented by diffferent colors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
